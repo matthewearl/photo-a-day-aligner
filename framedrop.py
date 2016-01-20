@@ -32,7 +32,7 @@ import numpy
 MASK_PATH = "mask.png"
 ALIGNED_GLOB = "./aligned/*.jpg"
 FILE_LIST = "files.txt"
-MAX_FRAME_SKIP = 16
+FRAME_SKIP = 10
 ERODE_AMOUNT = 101
 
 
@@ -49,21 +49,38 @@ def read_ims():
 
 def find_lengths():
     lengths = collections.defaultdict(dict) 
-    prev_masked = []
-    for n, im in read_ims():
-        prev_masked.append((n, (im * mask).astype(numpy.float32)))
+    prev_block = None
+    block = []
 
-        if len(prev_masked) >= MAX_FRAME_SKIP:
-            prev_masked = prev_masked[-MAX_FRAME_SKIP:]
-            n1, m1 = prev_masked[0]
-            for n2, m2 in prev_masked[1:]:
+    def link_blocks(b1, b2):
+        for n1, m1 in b1:
+            for n2, m2 in b2:
                 lengths[n1][n2] = numpy.linalg.norm(m2 - m1) ** 2.
+
+    for n, im in read_ims():
+        block.append((n, (im * mask).astype(numpy.float32)))
+
+        if len(block) == FRAME_SKIP:
+            if prev_block is not None:
+                link_blocks(prev_block, block)
+            prev_block = block
+            block = []
+
+    if block:
+        link_blocks(prev_block, block)
+
+    assert lengths, "Need at least {} input images".format(FRAME_SKIP + 1)
 
     return lengths
 
 
 lengths = find_lengths()
-dist = {n: (0 if n == names[0] else None) for n in names}
+sources = names[:FRAME_SKIP]
+if len(names) % FRAME_SKIP != 0:
+    drains = names[-(len(names) % FRAME_SKIP):]
+else:
+    drains = names[-FRAME_SKIP:]
+dist = {n: (0 if n in sources else None) for n in names}
 parent = {}
 for u in names:
     for v, weight in lengths[u].items():
@@ -71,16 +88,16 @@ for u in names:
             dist[v] = dist[u] + weight
             parent[v] = u
 
-
-def drain_to_source(v):
+def drain_to_source():
+    v = min(drains, key=lambda v: dist[v])
     yield v
-    while v != names[0]:
+    while v not in sources:
         v = parent[v]
         yield v
 
 
 with open(FILE_LIST, "w") as f:
-    path = list(reversed(list(drain_to_source(names[-1]))))
+    path = list(reversed(list(drain_to_source())))
     for n in path:
         f.write("{}\n".format(n))
 
