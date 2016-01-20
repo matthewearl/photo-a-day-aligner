@@ -3,7 +3,7 @@
 A few tools to help with daily self-portrait projects:
 
 * `align.py`: Take a set of photo-a-day images, and align them based on the
-  detected face. Also perform RGB scaling so that all the faces have the same
+  detected face, and perform RGB scaling so that all the faces have the same
   average RGB value. Also outputs an image `mask.png` which is used by the next
   script. Duplicate images, images with no face, and images with more than one
   face are dropped at this stage.
