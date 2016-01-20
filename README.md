@@ -11,16 +11,18 @@ A few tools to help with daily self-portrait projects:
   script. The output will have approximately `(100 / N)` % of the input images
   (`N` is `10` by default). Output frames are selected to avoid temporal
   discontinuities in the face area.
-* `make_vid.sh`: A shell script which calls `mplayer` to encode the file list
+* `make_vid.sh`: A shell script which calls `mencoder` to encode the file list
   produced by the above into a .h264 MP4 file.
 
 The Python scripts are currently configured by changing the capital letter
-variables defind at the top of each file. (This may change in the future).
+variables defined at the top of each file. (This may change in the future).
 Similarly, video compression parameters are changed by editing `make_vid.sh`.
 
 ## Requirements
 
 `align.py` requires `numpy`, `dlib`, `scipy`, and `cv2`.
+
 `framedrop.py` requires `cv2` and `numpy`.
-`make_vid.sh` requires `mplayer` and suitable codecs to be installed.
+
+`make_vid.sh` requires `mencoder` and suitable codecs to be installed.
 
