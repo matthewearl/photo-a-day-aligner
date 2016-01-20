@@ -32,11 +32,11 @@ import numpy
 MASK_PATH = "mask.png"
 ALIGNED_GLOB = "./aligned/*.jpg"
 FILE_LIST = "files.txt"
-MAX_FRAME_SKIP = 8
+MAX_FRAME_SKIP = 16
 ERODE_AMOUNT = 101
 
 
-names = list(sorted(glob.glob(ALIGNED_GLOB)))[:50]
+names = list(sorted(glob.glob(ALIGNED_GLOB)))
 mask = (cv2.imread(MASK_PATH) > 0).astype(numpy.float32)
 mask = cv2.GaussianBlur(mask, (ERODE_AMOUNT, ERODE_AMOUNT), 0) > 0.99
 
@@ -48,10 +48,6 @@ def read_ims():
 
 
 def find_lengths():
-
-    xs = []
-    ys = []
-
     lengths = collections.defaultdict(dict) 
     prev_masked = []
     for n, im in read_ims():
@@ -61,16 +57,7 @@ def find_lengths():
             prev_masked = prev_masked[-MAX_FRAME_SKIP:]
             n1, m1 = prev_masked[0]
             for n2, m2 in prev_masked[1:]:
-                d = numpy.linalg.norm(m2 - m1) ** 2.
-
-                lengths[n1][n2] = d
-                xs.append(d)
-
-            ys += range(1, MAX_FRAME_SKIP)
-
-    #import matplotlib.pyplot as plt
-    #plt.plot(numpy.array(xs), numpy.array(ys), 'b+')
-    #plt.show()
+                lengths[n1][n2] = numpy.linalg.norm(m2 - m1) ** 2.
 
     return lengths
 
