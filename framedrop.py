@@ -35,46 +35,40 @@ FILE_LIST = "files.txt"
 FRAME_SKIP = 10
 ERODE_AMOUNT = 101
 
-
 names = list(sorted(glob.glob(ALIGNED_GLOB)))
 mask = (cv2.imread(MASK_PATH) > 0).astype(numpy.float32)
 mask = cv2.GaussianBlur(mask, (ERODE_AMOUNT, ERODE_AMOUNT), 0) > 0.99
 
 
-def read_ims():
+def find_weights():
+    weights = collections.defaultdict(dict) 
+    prev_layer = None
+    layer = []
+
+    def link_layers(layer1, layer2):
+        for n1, m1 in layer1:
+            for n2, m2 in layer2:
+                weights[n1][n2] = numpy.linalg.norm(m2 - m1) ** 2.
+
     for n in names:
         im = cv2.imread(n)
-        yield n, im
+        layer.append((n, (im * mask).astype(numpy.float32)))
+
+        if len(layer) == FRAME_SKIP:
+            if prev_layer is not None:
+                link_layers(prev_layer, layer)
+            prev_layer = layer
+            layer = []
+
+    if layer:
+        link_layers(prev_layer, layer)
+
+    assert weights, "Need at least {} input images".format(FRAME_SKIP + 1)
+
+    return weights
 
 
-def find_lengths():
-    lengths = collections.defaultdict(dict) 
-    prev_block = None
-    block = []
-
-    def link_blocks(b1, b2):
-        for n1, m1 in b1:
-            for n2, m2 in b2:
-                lengths[n1][n2] = numpy.linalg.norm(m2 - m1) ** 2.
-
-    for n, im in read_ims():
-        block.append((n, (im * mask).astype(numpy.float32)))
-
-        if len(block) == FRAME_SKIP:
-            if prev_block is not None:
-                link_blocks(prev_block, block)
-            prev_block = block
-            block = []
-
-    if block:
-        link_blocks(prev_block, block)
-
-    assert lengths, "Need at least {} input images".format(FRAME_SKIP + 1)
-
-    return lengths
-
-
-lengths = find_lengths()
+weights = find_weights()
 sources = names[:FRAME_SKIP]
 if len(names) % FRAME_SKIP != 0:
     drains = names[-(len(names) % FRAME_SKIP):]
@@ -83,7 +77,7 @@ else:
 dist = {n: (0 if n in sources else None) for n in names}
 parent = {}
 for u in names:
-    for v, weight in lengths[u].items():
+    for v, weight in weights[u].items():
         if dist[v] is None or dist[v] > dist[u] + weight:
             dist[v] = dist[u] + weight
             parent[v] = u
