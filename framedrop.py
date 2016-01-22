@@ -48,7 +48,7 @@ def find_weights():
     def link_layers(layer1, layer2):
         for n1, m1 in layer1:
             for n2, m2 in layer2:
-                weights[n1][n2] = numpy.linalg.norm(m2 - m1) ** 2.
+                weights[n1][n2] = numpy.linalg.norm(m2 - m1)
 
     for n in names:
         im = cv2.imread(n)

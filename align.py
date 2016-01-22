@@ -38,7 +38,7 @@ MASK_PATH = "mask.png"
 
 # Mean face colour to adjust to. Change to `None` to use the first face, as
 # reference, 
-REF_COLOR = [108.46239451, 129.73562552, 164.23183483]
+REF_COLOR = None
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(PREDICTOR_PATH)
