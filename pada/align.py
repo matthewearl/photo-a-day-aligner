@@ -21,6 +21,11 @@
 #     USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+__all__ = (
+    'align_images',
+)
+
+
 import glob
 import os
 
@@ -29,52 +34,21 @@ import dlib
 import numpy
 import scipy
 
-
-PREDICTOR_PATH = "/home/matt/dlib-18.16/shape_predictor_68_face_landmarks.dat"
-IMG_THRESH = 2000.
-INPUT_GLOB = "*.jpg"
-OUT_PATH = "./aligned"
-MASK_PATH = "mask.png"
-
-# Mean face colour to adjust to. Change to `None` to use the first face, as
-# reference, 
-REF_COLOR = None
-
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(PREDICTOR_PATH)
+from . import landmarks
 
 
-def read_ims(names):
+def read_ims(names, img_thresh):
     count = 0
     total = 0
     prev_im = None
     for n in names:
         im = cv2.imread(n)
-        if prev_im is None or numpy.linalg.norm(prev_im - im) > IMG_THRESH:
+        if prev_im is None or numpy.linalg.norm(prev_im - im) > img_thresh:
             yield (n, im)
             count += 1
             prev_im = im
         total += 1
     print "Read {} / {} images".format(count, total)
-
-
-class TooManyFaces(Exception):
-    pass
-
-
-class NoFaces(Exception):
-    pass
-
-
-def get_landmarks(im):
-    rects = detector(im, 1)
-    
-    if len(rects) > 1:
-        raise TooManyFaces
-    if len(rects) == 0:
-        raise NoFaces
-
-    return numpy.matrix([[p.x, p.y] for p in predictor(im, rects[0]).parts()])
 
 
 def orthogonal_procrustes(points1, points2):
@@ -128,11 +102,11 @@ def warp_im(im, M, dshape):
     return output_im
 
 
-def read_ims_and_landmarks():
+def get_ims_and_landmarks(self, images, landmark_finder):
     count = 0
-    for n, im in read_ims(sorted(glob.glob(INPUT_GLOB))):
+    for n, im in images:
         try:
-            l = get_landmarks(im)
+            l = landmark_finder.get(im)
         except NoFaces:
             print "Warning: No faces in image {}".format(n)
         except TooManyFaces:
@@ -143,34 +117,49 @@ def read_ims_and_landmarks():
     print "Read {} images with landmarks".format(count)
 
 
-def draw_convex_hull(im, points, color):
-    points = cv2.convexHull(points)
-    cv2.fillConvexPoly(im, points, color=color)
+def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
+    """
+    Align a set of images of a person's face.
 
+    :param input_files:
 
-def get_face_mask(shape, landmarks):
-    im = numpy.zeros(shape[:2], dtype=numpy.float64)
-    draw_convex_hull(im,
-                     landmarks,
-                     color=1)
+        A list of file names to be aligned.
 
-    return im
+    :param out_path:
 
+        Directory to write the aligned files to. The output files have the same
+        basename as the corresponding input file.
 
-ref_landmarks = None
-ref_color = numpy.array(REF_COLOR) if REF_COLOR else None
-prev_masked_ims = []
-for n, im, landmarks in read_ims_and_landmarks():
-    mask = get_face_mask(im.shape, landmarks)
-    masked_im = mask[:, :, numpy.newaxis] * im
-    color = ((numpy.sum(masked_im, axis=(0, 1)) /
-              numpy.sum(mask, axis=(0, 1))))
-    if ref_landmarks is None:  
-        cv2.imwrite(MASK_PATH, mask * 255.)
-        ref_landmarks = landmarks
-    if ref_color is None:
-        ref_color = color
-    M = orthogonal_procrustes(ref_landmarks, landmarks)
-    warped = warp_im(im, M, im.shape)
-    warped_corrected = warped * ref_color / color
-    cv2.imwrite(os.path.join(OUT_PATH, n), warped_corrected)
+    :param landmark_finder:
+
+        An instance of :class:`.LandmarkFinder`, used to find the facial
+        landmarks.
+
+    :param img_thresh:
+
+        Images with an with this distance of the previous image (using the L2
+        norm) are considered duplicates and are ignored.
+
+    """
+    ref_landmarks = None
+    ref_color = None
+    prev_masked_ims = []
+
+    ims_and_landmarks = get_ims_and_landmarks(
+                                  read_ims(input_files, img_thresh=img_thresh),
+                                  landmark_finder)
+
+    for n, im, lms in ims_and_landmarks:
+        mask = get_face_mask(im.shape, lms)
+        masked_im = mask[:, :, numpy.newaxis] * im
+        color = ((numpy.sum(masked_im, axis=(0, 1)) /
+                  numpy.sum(mask, axis=(0, 1))))
+        if ref_landmarks is None:  
+            ref_landmarks = lms
+        if ref_color is None:
+            ref_color = color
+        M = orthogonal_procrustes(ref_landmarks, lms)
+        warped = warp_im(im, M, im.shape)
+        warped_corrected = warped * ref_color / color
+        cv2.imwrite(os.path.join(out_path, n), warped_corrected)
+
