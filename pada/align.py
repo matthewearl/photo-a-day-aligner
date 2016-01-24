@@ -26,7 +26,6 @@ __all__ = (
 )
 
 
-import glob
 import os
 
 import cv2
@@ -35,7 +34,6 @@ import numpy
 import scipy
 
 from . import landmarks
-
 
 def read_ims(names, img_thresh):
     count = 0
@@ -102,14 +100,14 @@ def warp_im(im, M, dshape):
     return output_im
 
 
-def get_ims_and_landmarks(self, images, landmark_finder):
+def get_ims_and_landmarks(images, landmark_finder):
     count = 0
     for n, im in images:
         try:
             l = landmark_finder.get(im)
-        except NoFaces:
+        except landmarks.NoFaces:
             print "Warning: No faces in image {}".format(n)
-        except TooManyFaces:
+        except landmarks.TooManyFaces:
             print "Warning: Too many faces in image {}".format(n)
         else:
             yield (n, im, l)
@@ -150,7 +148,7 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
                                   landmark_finder)
 
     for n, im, lms in ims_and_landmarks:
-        mask = get_face_mask(im.shape, lms)
+        mask = landmarks.get_face_mask(im.shape, lms)
         masked_im = mask[:, :, numpy.newaxis] * im
         color = ((numpy.sum(masked_im, axis=(0, 1)) /
                   numpy.sum(mask, axis=(0, 1))))
@@ -161,5 +159,6 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
         M = orthogonal_procrustes(ref_landmarks, lms)
         warped = warp_im(im, M, im.shape)
         warped_corrected = warped * ref_color / color
-        cv2.imwrite(os.path.join(out_path, n), warped_corrected)
+        out_fname = os.path.join(out_path, os.path.basename(n))
+        cv2.imwrite(out_fname, warped_corrected)
 

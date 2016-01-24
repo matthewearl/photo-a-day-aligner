@@ -27,6 +27,11 @@ __all__ = (
 )
 
 
+import cv2
+import dlib
+import numpy
+
+
 class TooManyFaces(Exception):
     pass
 
@@ -38,10 +43,10 @@ class NoFaces(Exception):
 class LandmarkFinder(object):
     def __init__(self, predictor_path):
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor(predictor_path)
+        self.predictor = dlib.shape_predictor(str(predictor_path))
 
     def get(self, im):
-        rects = detector(im, 1)
+        rects = self.detector(im, 1)
         
         if len(rects) > 1:
             raise TooManyFaces
@@ -49,7 +54,7 @@ class LandmarkFinder(object):
             raise NoFaces
 
         return numpy.matrix([[p.x, p.y]
-                                     for p in predictor(im, rects[0]).parts()])
+                                for p in self.predictor(im, rects[0]).parts()])
 
 
 def draw_convex_hull(im, points, color):
