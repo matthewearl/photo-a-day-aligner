@@ -25,6 +25,7 @@ import glob
 import json
 import logging
 import os
+import sys
 
 import pada.align
 import pada.framedrop
@@ -48,17 +49,20 @@ def parse_args():
                         help='DLib face predictor dat file',
                         type=unicode)
     parser.add_argument('--filtered-files',
-                        help='Path to write filtered files to',
+                        help='File to write filtered files to',
                         type=unicode)
 
     subparsers = parser.add_subparsers(help='Sub-command help')
+
+    print_config_paths = subparsers.add_parser(
+        'print_config_paths',
+        help='print config paths and exit')
+    print_config_paths.set_defaults(cmd='print_config_paths')
 
     align_parser = subparsers.add_parser('align',
                                          help='align a set of images')
     align_parser.add_argument('--input-glob',
                               help='Input files glob', type=unicode)
-    align_parser.add_argument('--out-path',
-                              help='Path to write files to', type=unicode)
     align_parser.add_argument('--img-thresh',
                               help='Max duplicate frame delta', type=float)
     align_parser.set_defaults(cmd='align')
@@ -66,11 +70,6 @@ def parse_args():
     framedrop_parser = subparsers.add_parser(
                                        'framedrop',
                                        help='Drop frames from a set of images')
-    framedrop_parser.add_argument('--input-glob', help='Input files glob',
-                                  type=unicode)
-    framedrop_parser.add_argument('--predictor-path',
-                                  help='DLib face predictor dat file',
-                                  type=unicode)
     framedrop_parser.add_argument('--erode-amount',
                               help='Amount to erode face mask by', type=int)
     framedrop_parser.add_argument(
@@ -104,6 +103,11 @@ if __name__ == "__main__":
                 CONFIG_FILE_NAME))
     if cli_args.config:
         config_paths.append(cli_args.config)
+
+    if cli_args.cmd == "print_config_paths":
+        for config_path in config_paths:
+            print config_path
+        sys.exit(0)
 
     # Attempt to open each config file, and update the `cfg` dict with each
     # one.
