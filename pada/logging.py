@@ -19,13 +19,19 @@
 #     USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+from __future__ import absolute_import
+
+
 __all__ = (
   'LOGGER_NAME',
   'logger',
 )
 
+
 import logging
 
+
 LOGGER_NAME = "pada"
+
 logger = logging.getLogger(LOGGER_NAME)
 

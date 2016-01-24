@@ -30,6 +30,7 @@ import sys
 import pada.align
 import pada.framedrop
 import pada.landmarks
+import pada.logging
 
 
 APP_NAME = "pada"
@@ -83,8 +84,11 @@ def parse_args():
 
 if __name__ == "__main__":
     cli_args = parse_args()
+
     if cli_args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
 
     # Build up a list of potential config files to parse.
     config_paths = []
@@ -130,7 +134,8 @@ if __name__ == "__main__":
     logging.debug("Config is %r", cfg)
 
     # Execute the command by deferring to the appopriate module.
-    landmark_finder = pada.landmarks.LandmarkFinder(cfg['predictor_path'])
+    landmark_finder = pada.landmarks.LandmarkFinder(
+                                     os.path.expanduser(cfg['predictor_path']))
     if cli_args.cmd == "align":
         pada.align.align_images(
             input_files=sorted(glob.glob(cfg['input_glob'])),

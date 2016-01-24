@@ -26,6 +26,7 @@ __all__ = (
 )
 
 
+import glob
 import os
 
 import cv2
@@ -42,11 +43,14 @@ def read_ims(names, img_thresh):
     total = 0
     prev_im = None
     for n in names:
+        logger.debug("Reading image %s", n)
         im = cv2.imread(n)
         if prev_im is None or numpy.linalg.norm(prev_im - im) > img_thresh:
             yield (n, im)
             count += 1
             prev_im = im
+        else:
+            logger.debug("Ignoring %s as it is a duplicate", n)
         total += 1
     logger.info("Read %s / %s images", count, total)
 
@@ -145,10 +149,22 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
     ref_color = None
     prev_masked_ims = []
 
+    # Clean up the out_path, or create it it if necessary.
+    if os.path.exists(out_path):
+        if not os.path.isdir(out_path):
+            raise Exception("Path {} exists, but it is not a directory".format(
+                                                                     out_path))
+        logger.info("%s already exists. Removing existing images.", out_path)
+        for fname in glob.glob(os.path.join(out_path, "*.jpg")):
+            os.remove(fname)
+    else:
+        logger.info("%s does not exist. Creating it.", out_path)
+        os.mkdir(out_path)
+
+    # Process each file in turn.
     ims_and_landmarks = get_ims_and_landmarks(
                                   read_ims(input_files, img_thresh=img_thresh),
                                   landmark_finder)
-
     for n, im, lms in ims_and_landmarks:
         mask = landmarks.get_face_mask(im.shape, lms)
         masked_im = mask[:, :, numpy.newaxis] * im
@@ -163,4 +179,5 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
         warped_corrected = warped * ref_color / color
         out_fname = os.path.join(out_path, os.path.basename(n))
         cv2.imwrite(out_fname, warped_corrected)
+        logger.debug("Wrote file %s", out_fname)
 
