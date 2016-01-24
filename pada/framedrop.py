@@ -34,6 +34,7 @@ import cv2
 import numpy
 
 from . import landmarks
+from .logging import logger
 
 
 def find_weights(names, mask, frame_skip):
@@ -139,6 +140,7 @@ def filter_files(input_files, frame_skip, erode_amount, landmark_finder):
     for n in path:
         yield n
 
-    print "{} / {}  =  {} %".format(len(path), len(input_files),
-                                    100. * len(path) / len(input_files))
+    logger.info("Kept %s / %s (%s %%) frames", 
+                                           len(path), len(input_files),
+                                           100. * len(path) / len(input_files))
 

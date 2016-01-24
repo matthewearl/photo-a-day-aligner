@@ -34,6 +34,8 @@ import numpy
 import scipy
 
 from . import landmarks
+from .logging import logger
+
 
 def read_ims(names, img_thresh):
     count = 0
@@ -46,7 +48,7 @@ def read_ims(names, img_thresh):
             count += 1
             prev_im = im
         total += 1
-    print "Read {} / {} images".format(count, total)
+    logger.info("Read %s / %s images", count, total)
 
 
 def orthogonal_procrustes(points1, points2):
@@ -106,13 +108,13 @@ def get_ims_and_landmarks(images, landmark_finder):
         try:
             l = landmark_finder.get(im)
         except landmarks.NoFaces:
-            print "Warning: No faces in image {}".format(n)
+            logger.warn("No faces in image %s", n)
         except landmarks.TooManyFaces:
-            print "Warning: Too many faces in image {}".format(n)
+            logger.warn("Too many faces in image %s", n)
         else:
             yield (n, im, l)
             count += 1
-    print "Read {} images with landmarks".format(count)
+    logger.info("Read %s images with landmarks", count)
 
 
 def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
