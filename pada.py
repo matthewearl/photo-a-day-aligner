@@ -42,6 +42,14 @@ def parse_args():
                         action='store_true')
     parser.add_argument('--config', help='Config file path', type=unicode,
                         default=CONFIG_FILE_NAME)
+    parser.add_argument('--aligned-path',
+                        help='Path where aligned images will be stored')
+    parser.add_argument('--predictor-path',
+                        help='DLib face predictor dat file',
+                        type=unicode)
+    parser.add_argument('--filtered-files',
+                        help='Path to write filtered files to',
+                        type=unicode)
 
     subparsers = parser.add_subparsers(help='Sub-command help')
 
@@ -51,9 +59,6 @@ def parse_args():
                               help='Input files glob', type=unicode)
     align_parser.add_argument('--out-path',
                               help='Path to write files to', type=unicode)
-    align_parser.add_argument('--predictor-path',
-                              help='DLib face predictor dat file',
-                              type=unicode)
     align_parser.add_argument('--img-thresh',
                               help='Max duplicate frame delta', type=float)
     align_parser.set_defaults(cmd='align')
@@ -63,8 +68,6 @@ def parse_args():
                                        help='Drop frames from a set of images')
     framedrop_parser.add_argument('--input-glob', help='Input files glob',
                                   type=unicode)
-    framedrop_parser.add_argument('--out-file',
-                              help='Path to write file list to', type=unicode)
     framedrop_parser.add_argument('--predictor-path',
                                   help='DLib face predictor dat file',
                                   type=unicode)
@@ -109,7 +112,10 @@ if __name__ == "__main__":
         try:
             with open(config_path) as f:
                 d = json.load(f)
-                cfg.update(d[cli_args.cmd])
+                if 'global' in d:
+                    cfg.update(d['global'])
+                if cli_args.cmd in d:
+                    cfg.update(d[cli_args.cmd])
         except IOError:
             logging.warn("Could not open config file %s", config_path)
         else:
@@ -120,18 +126,22 @@ if __name__ == "__main__":
     logging.debug("Config is %r", cfg)
 
     # Execute the command by deferring to the appopriate module.
+    landmark_finder = pada.landmarks.LandmarkFinder(cfg['predictor_path'])
     if cli_args.cmd == "align":
-        landmark_finder = pada.landmarks.LandmarkFinder(cfg['predictor_path'])
         pada.align.align_images(
             input_files=sorted(glob.glob(cfg['input_glob'])),
-            out_path=cfg['out_path'],
+            out_path=cfg['aligned_path'],
             landmark_finder=landmark_finder,
             img_thresh=cfg['img_thresh'])
     elif cli_args.cmd == "framedrop":
-        landmark_finder = pada.landmarks.LandmarkFinder(cfg['predictor_path'])
-        pada.framedrop.filter_files(
-            input_files=sorted(glob.glob(cfg['input_glob'])),
+        filtered_files = pada.framedrop.filter_files(
+            input_files=sorted(glob.glob(
+                                  os.path.join(cfg['aligned_path'], '*.jpg'))),
             frame_skip=cfg['frame_skip'],
             erode_amount=cfg['erode_amount'],
             landmark_finder=landmark_finder)
+
+        with open(cfg['filtered_files'], 'w') as f:
+            for fname in filtered_files:
+                f.write("{}\n".format(fname))
 

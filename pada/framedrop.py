@@ -36,7 +36,7 @@ import numpy
 from . import landmarks
 
 
-def find_weights(frame_skip):
+def find_weights(names, mask, frame_skip):
     weights = collections.defaultdict(dict) 
     prev_layer = None
     layer = []
@@ -48,7 +48,8 @@ def find_weights(frame_skip):
 
     for n in names:
         im = cv2.imread(n)
-        layer.append((n, (im * mask).astype(numpy.float32)))
+        masked_im = (im * mask[:, :, numpy.newaxis]).astype(numpy.float32)
+        layer.append((n, masked_im))
 
         if len(layer) == frame_skip:
             if prev_layer is not None:
@@ -64,9 +65,17 @@ def find_weights(frame_skip):
     return weights
 
 
-def make_mask(im_name, erode_amount):
-    im = input_files[0]
-    lm = landmark_finder.get(cv2.imread(im))
+def make_mask(im_name, erode_amount, landmark_finder):
+    """
+    Define a mask which is the eroded convex hull of the face in the given
+    image.
+
+    The returned mask is used for measuring frame difference in the filtering
+    algorithm.
+
+    """
+    im = cv2.imread(im_name)
+    lm = landmark_finder.get(im)
     mask = landmarks.get_face_mask(im.shape, lm)
     mask = cv2.GaussianBlur(mask, (erode_amount, erode_amount), 0) > 0.99
 
@@ -87,17 +96,18 @@ def filter_files(input_files, frame_skip, erode_amount, landmark_finder):
         Amount to erode the input mask by.
 
     :param landmark_finder:
-
         An instance of :class:`.LandmarkFinder`, used to find the facial
         landmarks.
 
     """
     input_files = list(input_files)
 
-    mask = make_mask(input_files[0], erode_amount)
+    # Make a mask, which defines the area over which frame difference is
+    # measured.
+    mask = make_mask(input_files[0], erode_amount, landmark_finder)
 
     # Find the nodes in the first and last layer.
-    weights = find_weights(frame_skip)
+    weights = find_weights(input_files, mask, frame_skip)
     sources = input_files[:frame_skip]
     if len(input_files) % frame_skip != 0:
         drains = input_files[-(len(input_files) % frame_skip):]
