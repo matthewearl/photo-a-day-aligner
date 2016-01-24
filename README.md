@@ -42,14 +42,17 @@ dclib/files/dlib/v18.10/shape_predictor_68_face_landmarks.dat.bz2).
 
 General `pada.py` options:
 
-    $ ./pada.py --help
+    $ pada.py --help
     usage: pada.py [-h] [--debug] [--config CONFIG] [--aligned-path ALIGNED_PATH]
+                   [--aligned-extension ALIGNED_EXTENSION]
                    [--predictor-path PREDICTOR_PATH]
                    [--filtered-files FILTERED_FILES]
-                   {align,framedrop} ...
+                   {print_config_paths,align,framedrop} ...
 
     positional arguments:
-      {align,framedrop}     Sub-command help
+      {print_config_paths,align,framedrop}
+                            Sub-command help
+        print_config_paths  print config paths and exit
         align               align a set of images
         framedrop           Drop frames from a set of images
 
@@ -59,6 +62,8 @@ General `pada.py` options:
       --config CONFIG       Config file path
       --aligned-path ALIGNED_PATH
                             Path where aligned images will be stored
+      --aligned-extension ALIGNED_EXTENSION
+                            Extension (and filetype) to use for aligned images.
       --predictor-path PREDICTOR_PATH
                             DLib face predictor dat file
       --filtered-files FILTERED_FILES
@@ -66,7 +71,7 @@ General `pada.py` options:
 
 `pada.py align` options:
 
-    $ ./pada.py align --help
+    $ pada.py align --help
     usage: pada.py align [-h] [--input-glob INPUT_GLOB] [--img-thresh IMG_THRESH]
 
     optional arguments:
@@ -78,7 +83,7 @@ General `pada.py` options:
 
 `pada.py framedrop` options:
 
-    $ ./pada.py framedrop --help
+    $ pada.py framedrop --help
     usage: pada.py framedrop [-h] [--erode-amount ERODE_AMOUNT]
                              [--frame-skip FRAME_SKIP]
 

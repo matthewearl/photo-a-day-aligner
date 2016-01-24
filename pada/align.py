@@ -121,7 +121,8 @@ def get_ims_and_landmarks(images, landmark_finder):
     logger.info("Read %s images with landmarks", count)
 
 
-def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
+def align_images(input_files, out_path, out_extension, landmark_finder,
+                 img_thresh=0.0):
     """
     Align a set of images of a person's face.
 
@@ -133,6 +134,10 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
 
         Directory to write the aligned files to. The output files have the same
         basename as the corresponding input file.
+
+    :param out_extension:
+
+        Extension to use for aligned images.
 
     :param landmark_finder:
 
@@ -155,7 +160,8 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
             raise Exception("Path {} exists, but it is not a directory".format(
                                                                      out_path))
         logger.info("%s already exists. Removing existing images.", out_path)
-        for fname in glob.glob(os.path.join(out_path, "*.jpg")):
+        for fname in glob.glob(os.path.join(out_path,
+                                            "*.{}".format(out_extension))):
             os.remove(fname)
     else:
         logger.info("%s does not exist. Creating it.", out_path)
@@ -165,7 +171,7 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
     ims_and_landmarks = get_ims_and_landmarks(
                                   read_ims(input_files, img_thresh=img_thresh),
                                   landmark_finder)
-    for n, im, lms in ims_and_landmarks:
+    for idx, (n, im, lms) in enumerate(ims_and_landmarks):
         mask = landmarks.get_face_mask(im.shape, lms)
         masked_im = mask[:, :, numpy.newaxis] * im
         color = ((numpy.sum(masked_im, axis=(0, 1)) /
@@ -177,7 +183,8 @@ def align_images(input_files, out_path, landmark_finder, img_thresh=0.0):
         M = orthogonal_procrustes(ref_landmarks, lms)
         warped = warp_im(im, M, im.shape)
         warped_corrected = warped * ref_color / color
-        out_fname = os.path.join(out_path, os.path.basename(n))
+        out_fname = os.path.join(out_path,
+                                 "{:08d}.{}".format(idx, out_extension))
         cv2.imwrite(out_fname, warped_corrected)
         logger.debug("Wrote file %s", out_fname)
 

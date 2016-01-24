@@ -46,6 +46,9 @@ def parse_args():
                         default=CONFIG_FILE_NAME)
     parser.add_argument('--aligned-path',
                         help='Path where aligned images will be stored')
+    parser.add_argument('--aligned-extension',
+                        help='Extension (and filetype) to use for aligned '
+                             'images.')
     parser.add_argument('--predictor-path',
                         help='DLib face predictor dat file',
                         type=unicode)
@@ -140,12 +143,15 @@ if __name__ == "__main__":
         pada.align.align_images(
             input_files=sorted(glob.glob(cfg['input_glob'])),
             out_path=cfg['aligned_path'],
+            out_extension=cfg['aligned_extension'],
             landmark_finder=landmark_finder,
             img_thresh=cfg['img_thresh'])
     elif cli_args.cmd == "framedrop":
+        input_files_glob = os.path.join(
+                                       cfg['aligned_path'],
+                                       '*.{}'.format(cfg['aligned_extension']))
         filtered_files = pada.framedrop.filter_files(
-            input_files=sorted(glob.glob(
-                                  os.path.join(cfg['aligned_path'], '*.jpg'))),
+            input_files=sorted(glob.glob(input_files_glob)),
             frame_skip=cfg['frame_skip'],
             erode_amount=cfg['erode_amount'],
             landmark_finder=landmark_finder)

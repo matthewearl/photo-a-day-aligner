@@ -102,12 +102,15 @@ def filter_files(input_files, frame_skip, erode_amount, landmark_finder):
 
     """
     input_files = list(input_files)
+    logger.info("Filtering %s files", len(input_files))
 
     # Make a mask, which defines the area over which frame difference is
     # measured.
+    logger.debug("Making mask")
     mask = make_mask(input_files[0], erode_amount, landmark_finder)
 
     # Find the nodes in the first and last layer.
+    logger.debug("Finding weights")
     weights = find_weights(input_files, mask, frame_skip)
     sources = input_files[:frame_skip]
     if len(input_files) % frame_skip != 0:
@@ -118,6 +121,7 @@ def filter_files(input_files, frame_skip, erode_amount, landmark_finder):
     # Compute `dist` which gives the minimum distance from any frame to a start
     # frame, and `parent` which given a node returns the previous node on the
     # shortest path to that node.
+    logger.debug("Computing distances")
     dist = {n: (0 if n in sources else None) for n in input_files}
     parent = {}
     for u in input_files:
