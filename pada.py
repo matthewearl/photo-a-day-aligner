@@ -19,6 +19,7 @@
 #     OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 #     USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+
 import argparse
 import glob
 import json
@@ -69,6 +70,10 @@ def parse_args():
                                   type=unicode)
     framedrop_parser.add_argument('--erode-amount',
                               help='Amount to erode face mask by', type=int)
+    framedrop_parser.add_argument(
+                            '--frame-skip',
+                            help='Ratio of input frames to output frames',
+                            type=int)
     framedrop_parser.set_defaults(cmd='framedrop')
 
     return parser.parse_args()
@@ -118,14 +123,14 @@ if __name__ == "__main__":
     if cli_args.cmd == "align":
         landmark_finder = pada.landmarks.LandmarkFinder(cfg['predictor_path'])
         pada.align.align_images(
-            input_files=glob.glob(cfg['input_glob']),
+            input_files=sorted(glob.glob(cfg['input_glob'])),
             out_path=cfg['out_path'],
             landmark_finder=landmark_finder,
             img_thresh=cfg['img_thresh'])
     elif cli_args.cmd == "framedrop":
         landmark_finder = pada.landmarks.LandmarkFinder(cfg['predictor_path'])
         pada.framedrop.filter_files(
-            input_files=glob.glob(cfg['input_glob']),
+            input_files=sorted(glob.glob(cfg['input_glob'])),
             frame_skip=cfg['frame_skip'],
             erode_amount=cfg['erode_amount'],
             landmark_finder=landmark_finder)
